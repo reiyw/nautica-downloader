@@ -1,3 +1,5 @@
+justfile
+
 # compiled
 nautica
 nautica-downloader.exe

@@ -1,5 +1,4 @@
 const base = 'https://ksm.dev';
-const onWindows = true;
 
 const axios = require('axios').create({
   baseURL: `${base}/app`
@@ -17,7 +16,6 @@ const mkdirp = require('mkdirp');
 class NauticaDownloader {
   constructor() {
     this.createNauticaDirectory();
-    this.copyUnar();
   }
 
   /**
@@ -177,14 +175,14 @@ class NauticaDownloader {
         return;
       }
 
-      fs.writeFileSync(path.resolve(`./nautica/${songZipName}`), data)
+      fs.writeFileSync(path.resolve(`${dest}/${songZipName}`), data)
 
       console.log(`Finished downloading ${songObj.title} - ${songObj.artist}. Extracting...`);
 
       try {
         await this.extract(
-          path.resolve(`./nautica/${songZipName}`),
-          path.resolve(`./nautica/${userDirectoryName}`)
+          path.resolve(`${dest}/${songZipName}`),
+          path.resolve(`${dest}/${userDirectoryName}`)
         );
       } catch (e) {
         console.log(e);
@@ -195,7 +193,7 @@ class NauticaDownloader {
 
       console.log(`Finished extracting ${songObj.title} - ${songObj.artist}. Deleting old zip and cleaning up...`);
 
-      fs.unlinkSync(path.resolve(`./nautica/${songZipName}`));
+      fs.unlinkSync(path.resolve(`${dest}/${songZipName}`));
 
       console.log(`Deleted old zip. Finished download!`);
 
@@ -207,33 +205,9 @@ class NauticaDownloader {
    * Creates the nautica directory.
    */
   createNauticaDirectory() {
-    if (!fs.existsSync(path.resolve('./nautica'))) {
-      console.log('Creating nautica directory...');
-      fs.mkdirSync(path.resolve('./nautica'));
-    }
-  }
-
-  /**
-   * Copies the Unar file.
-   */
-  copyUnar() {
-    if (onWindows) {
-      if (!fs.existsSync(path.resolve('./unar.exe'))) {
-        console.log('Writing files for extracting zips...');
-        fs.writeFileSync(path.resolve('./unar.exe'), fs.readFileSync(path.join(__dirname, './assets/unar.exe')));
-        fs.chmodSync(path.resolve('./unar.exe'), "755");
-      }
-
-      if (!fs.existsSync(path.resolve('./Foundation.1.0.dll'))) {
-        fs.writeFileSync(path.resolve('./Foundation.1.0.dll'), fs.readFileSync(path.join(__dirname, './assets/Foundation.1.0.dll')));
-        fs.chmodSync(path.resolve('./Foundation.1.0.dll'), "755");
-      }
-    } else {
-      if (!fs.existsSync(path.resolve('./unar'))) {
-        console.log('Writing files for extracting zips...');
-        fs.writeFileSync(path.resolve('./unar'), fs.readFileSync(path.join(__dirname, './assets/unar')));
-        fs.chmodSync(path.resolve('./unar'), "755");
-      }
+    if (!fs.existsSync(path.resolve(dest))) {
+      console.log('Creating destination directory...');
+      fs.mkdirSync(path.resolve(dest));
     }
   }
 
@@ -243,8 +217,8 @@ class NauticaDownloader {
   createUserDirectory(user) {
     const userDirectoryName = this.getUserDirectoryName(user);
 
-    if (!fs.existsSync(path.resolve(`./nautica/${userDirectoryName}`))) {
-      fs.mkdirSync(path.resolve(`./nautica/${userDirectoryName}`));
+    if (!fs.existsSync(path.resolve(`${dest}/${userDirectoryName}`))) {
+      fs.mkdirSync(path.resolve(`${dest}/${userDirectoryName}`));
     }
   }
 
@@ -252,11 +226,11 @@ class NauticaDownloader {
    * Gets the directory name for a user. Stores it inside meta.
    */
   getUserDirectoryName(user) {
-    if (!fs.existsSync(path.resolve('./nautica/meta.json'))) {
-      fs.writeFileSync(path.resolve('./nautica/meta.json'), JSON.stringify({}), 'utf8');
+    if (!fs.existsSync(path.resolve(`${dest}/meta.json`))) {
+      fs.writeFileSync(path.resolve(`${dest}/meta.json`), JSON.stringify({}), 'utf8');
     }
 
-    const meta = JSON.parse(fs.readFileSync(path.resolve('./nautica/meta.json'))); 
+    const meta = JSON.parse(fs.readFileSync(path.resolve(`${dest}/meta.json`))); 
 
     if (!meta.users || !meta.users[user.id]) { 
       console.log('New user found, adding to list of users');
@@ -267,7 +241,7 @@ class NauticaDownloader {
 
       const userDirectoryName = this.cleanName(user.name);  
       meta.users[user.id] = userDirectoryName;
-      fs.writeFileSync(path.resolve('./nautica/meta.json'), JSON.stringify(meta), 'utf8');
+      fs.writeFileSync(path.resolve(`${dest}/meta.json`), JSON.stringify(meta), 'utf8');
       return userDirectoryName;
     }
 
@@ -283,14 +257,14 @@ class NauticaDownloader {
    * Returns null if the script was never ran before.
    */
   getWhenSongWasLastDownloaded(songId) {
-    if (!fs.existsSync(path.resolve('./nautica/meta.json'))) {
-      fs.writeFileSync(path.resolve('./nautica/meta.json'), JSON.stringify({
+    if (!fs.existsSync(path.resolve(`${dest}/meta.json`))) {
+      fs.writeFileSync(path.resolve(`${dest}/meta.json`), JSON.stringify({
         songDownloadTimes: {}
       }), 'utf8');
       return null;
     }
 
-    const meta = JSON.parse(fs.readFileSync(path.resolve('./nautica/meta.json')));
+    const meta = JSON.parse(fs.readFileSync(path.resolve(`${dest}/meta.json`)));
     return meta.songDownloadTimes[songId];
   }
 
@@ -298,18 +272,18 @@ class NauticaDownloader {
    * Sets the last time this class fetched all the songs for a user.
    */
   setWhenSongWasLastDownloaded(songId) {
-    if (!fs.existsSync(path.resolve('./nautica/meta.json'))) {
-      fs.writeFileSync(path.resolve('./nautica/meta.json'), JSON.stringify({
+    if (!fs.existsSync(path.resolve(`${dest}/meta.json`))) {
+      fs.writeFileSync(path.resolve(`${dest}/meta.json`), JSON.stringify({
         songDownloadTimes: {}
       }), 'utf8');
     }
-    const meta = JSON.parse(fs.readFileSync(path.resolve('./nautica/meta.json')));
+    const meta = JSON.parse(fs.readFileSync(path.resolve(`${dest}/meta.json`)));
     if (!meta.songDownloadTimes) {
       meta.songDownloadTimes = {}
     }
 
     meta.songDownloadTimes[songId] = moment().unix();
-    fs.writeFileSync(path.resolve('./nautica/meta.json'), JSON.stringify(meta), 'utf8');
+    fs.writeFileSync(path.resolve(`${dest}/meta.json`), JSON.stringify(meta), 'utf8');
   }
 
   /**
@@ -317,9 +291,7 @@ class NauticaDownloader {
    */
   extract(zipFilename, basePath) {
     return new Promise((resolve, reject) => {
-      const unarPath = onWindows ? path.resolve('./unar.exe') : path.resolve('./unar');
-
-      child_process.exec(`"${unarPath}" "${zipFilename}" -o "${basePath}" -f`, {
+      child_process.exec(`unar "${zipFilename}" -o "${basePath}" -f`, {
         cwd: basePath,
         windowsHide: true,
       }, (error, stdout, stderr) => {
@@ -336,9 +308,11 @@ class NauticaDownloader {
   }
 }
 
-downloader = new NauticaDownloader();
-
 const args = minimist(process.argv.slice(2));
+
+let dest = args.dest || './nautica';
+
+downloader = new NauticaDownloader();
 
 if (args.song) {
   downloader.downloadSong(args.song);
